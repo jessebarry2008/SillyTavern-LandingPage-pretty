@@ -9,8 +9,9 @@ import { waitForFrame } from './wait.js';
 
 export class LandingPage {
     /**@type {Card[]}*/ cards = [];
-    /**@type {Object.<string, Card[]>}*/ cardsByCategory = { favorites:[], recents:[], new:[] };
-    /**@type {'favorites'|'recents'|'new'}*/ activeCategory = 'favorites';
+    /**@type {Object.<string, Card[]>}*/ cardsByCategory = { favorites:[], recents:[], search:[] };
+    /**@type {'favorites'|'recents'|'search'}*/ activeCategory = 'favorites';
+    /**@type {string}*/ searchQuery = '';
 
     /**@type {Object}*/ settings;
 
@@ -80,7 +81,10 @@ export class LandingPage {
 
         this.sheld = document.querySelector('#sheld');
         this.chatInput = document.querySelector('#send_textarea');
-        if (!['favorites', 'recents', 'new'].includes(this.settings.activeCategory)) {
+        if (this.settings.activeCategory === 'new') {
+            this.settings.activeCategory = 'search';
+        }
+        if (!['favorites', 'recents', 'search'].includes(this.settings.activeCategory)) {
             this.settings.activeCategory = 'favorites';
         }
         this.activeCategory = this.settings.activeCategory;
@@ -89,14 +93,12 @@ export class LandingPage {
 
     async load() {
         log('LandingPage.load');
-        const getNewTimestamp = (char)=> Number(
-            char.create_date
-            ?? char.date_added
-            ?? char.date_create
-            ?? char.date_created
-            ?? char.date_last_chat
-            ?? 0,
-        ) || 0;
+        const toSearchText = (value)=>{
+            if (value === null || value === undefined) return '';
+            if (Array.isArray(value)) return value.map(it=>toSearchText(it)).join(' ');
+            if (typeof value === 'object') return toSearchText(Object.values(value));
+            return `${value}`;
+        };
         const compRecent = (a,b)=>{
             if (this.settings.showFavorites) {
                 if (a.char.fav && !b.char.fav) return -1;
@@ -114,27 +116,36 @@ export class LandingPage {
                         card.onOpenChat = ()=>{
                             this.dom.classList.add('stlp--busy');
                         };
+                        card.searchText = [
+                            char.name,
+                            toSearchText(char.tags),
+                            toSearchText(char.tag),
+                            toSearchText(char.data?.tags),
+                            toSearchText(char.data?.extensions?.tags),
+                            toSearchText(char.description),
+                            toSearchText(char.scenario),
+                            toSearchText(char.personality),
+                            toSearchText(char.first_mes),
+                        ]
+                            .join(' ')
+                            .toLowerCase();
                         return card;
                     })(),
-                    newTimestamp: getNewTimestamp(char),
                 }));
 
             const byRecent = entries.toSorted(compRecent);
             const byFavorites = byRecent.filter(it=>it.card.isFavorite);
-            const byNew = entries.toSorted((a,b)=>b.newTimestamp - a.newTimestamp);
 
             this.cardsByCategory = {
                 favorites: byFavorites.map(it=>it.card).slice(0, this.settings.numCards),
                 recents: byRecent.map(it=>it.card).slice(0, this.settings.numCards),
-                new: byNew.map(it=>it.card).slice(0, this.settings.numCards),
+                search: byRecent.map(it=>it.card),
             };
-
-            const allCards = Array.from(new Set(Object.values(this.cardsByCategory).flat()));
-            await Promise.all(allCards.map(card=>card.load()));
             this.cards = this.cardsByCategory[this.activeCategory] ?? [];
+            await this.ensureCardsLoaded(this.cards);
         } else {
             this.cards = [];
-            this.cardsByCategory = { favorites:[], recents:[], new:[] };
+            this.cardsByCategory = { favorites:[], recents:[], search:[] };
         }
         log('LandingPage.load COMPLETED', this);
     }
@@ -491,15 +502,55 @@ export class LandingPage {
         return [
             { key:'favorites', label:'Favourites' },
             { key:'recents', label:'Recents' },
-            { key:'new', label:'New' },
+            { key:'search', label:'Search' },
         ];
     }
 
+    async ensureCardsLoaded(cards) {
+        await Promise.all(cards.map(card=>card.load()));
+    }
+
+    getSearchFilteredCards() {
+        const query = this.searchQuery.trim().toLowerCase();
+        const searchCards = this.cardsByCategory.search ?? [];
+        if (!query) {
+            return searchCards.slice(0, this.settings.numCards);
+        }
+        const tokens = query.split(/\s+/).filter(Boolean);
+        const plainTokens = tokens.filter(it=>!it.startsWith('#'));
+        const tagTokens = tokens
+            .filter(it=>it.startsWith('#'))
+            .map(it=>it.slice(1).trim())
+            .filter(Boolean);
+        return searchCards.filter(card=>{
+            const text = card.searchText ?? '';
+            const plainMatch = plainTokens.every(it=>text.includes(it));
+            const tagMatch = tagTokens.every(it=>text.includes(it));
+            return plainMatch && tagMatch;
+        });
+    }
+
+    async setLoadingState(isLoading) {
+        if (!this.dom) return;
+        this.dom.classList.toggle('stlp--cardsLoading', isLoading);
+        await waitForFrame();
+    }
+
     async renderCardsForCategory(root, category) {
-        root.innerHTML = '';
-        this.cards = this.cardsByCategory[category] ?? [];
-        const els = await Promise.all(this.cards.map(async(card)=>await card.render(this.settings)));
-        els.forEach(it=>root.append(it));
+        await this.setLoadingState(true);
+        try {
+            root.innerHTML = '';
+            if (category === 'search') {
+                this.cards = this.getSearchFilteredCards();
+            } else {
+                this.cards = this.cardsByCategory[category] ?? [];
+            }
+            await this.ensureCardsLoaded(this.cards);
+            const els = await Promise.all(this.cards.map(async(card)=>await card.render(this.settings)));
+            els.forEach(it=>root.append(it));
+        } finally {
+            await this.setLoadingState(false);
+        }
     }
 
 
@@ -531,11 +582,36 @@ export class LandingPage {
                             tabs.querySelectorAll('.stlp--categoryTab').forEach(it=>it.classList.remove('stlp--active'));
                             btn.classList.add('stlp--active');
                             await this.renderCardsForCategory(root, key);
+                            searchWrap.style.display = key === 'search' ? '' : 'none';
                         });
                         tabs.append(btn);
                     }
                 });
                 wrap.append(tabs);
+            }
+
+            const searchWrap = document.createElement('div'); {
+                searchWrap.classList.add('stlp--searchWrap');
+                searchWrap.style.display = this.activeCategory === 'search' ? '' : 'none';
+                const searchInput = document.createElement('input'); {
+                    searchInput.classList.add('stlp--searchInput', 'text_pole');
+                    searchInput.type = 'search';
+                    searchInput.placeholder = 'Search cards and #tags...';
+                    searchInput.value = this.searchQuery;
+                    searchInput.addEventListener('input', debounce(async()=>{
+                        this.searchQuery = searchInput.value;
+                        if (this.activeCategory !== 'search') return;
+                        await this.renderCardsForCategory(root, 'search');
+                    }, 150));
+                    searchWrap.append(searchInput);
+                }
+                wrap.append(searchWrap);
+            }
+
+            const loading = document.createElement('div'); {
+                loading.classList.add('stlp--cardsLoadingIndicator');
+                loading.innerHTML = '<div class="stlp--cardsLoadingDeck"></div><div class="stlp--cardsLoadingText">Shuffling cards...</div>';
+                wrap.append(loading);
             }
 
             const root = document.createElement('div'); {
