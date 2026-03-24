@@ -318,7 +318,7 @@ html > body.stlp--hideTopBar:has(.stlp--container) > #top-bar:hover + #top-setti
   background: rgb(0 0 0 / 90%);
 }
 .stlp--container .stlp--wrapper .stlp--categoryTabs > .stlp--categoryTab.stlp--active {
-  background: #0b7f9c;
+  background: #51a0de;
 }
 .stlp--container .stlp--wrapper .stlp--cards {
   position: absolute;
