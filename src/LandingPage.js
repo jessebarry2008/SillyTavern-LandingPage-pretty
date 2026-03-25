@@ -135,11 +135,11 @@ export class LandingPage {
             };
             this.availableTags = this.getAvailableTags(this.cardsByCategory.search);
             this.updateSearchResults();
-            this.setStartupLoadingProgress(42, 'Preparing visuals…');
+            this.setStartupLoadingProgress(42, 'Shuffling the deck…');
 
             const allCards = Array.from(new Set(Object.values(this.cardsByCategory).flat()));
             await Promise.all(allCards.map(card=>card.load()));
-            this.setStartupLoadingProgress(82, 'Finalizing layout…');
+            this.setStartupLoadingProgress(82, 'Dealing your hand…');
             this.cards = this.activeCategory === 'search'
                 ? this.searchResults.slice(0, this.settings.numCards)
                 : (this.cardsByCategory[this.activeCategory] ?? []);
@@ -633,7 +633,7 @@ export class LandingPage {
 
 
     async renderContent() {
-        this.setStartupLoadingProgress(100, 'Ready');
+        this.setStartupLoadingProgress(100, 'Ready!');
         const container = this.dom;
         const wrap = document.createElement('div'); {
             wrap.classList.add('stlp--wrapper');
@@ -789,7 +789,7 @@ export class LandingPage {
             const label = document.createElement('div'); {
                 this.startupLoadingLabelEl = label;
                 label.classList.add('stlp--startupLoadingLabel');
-                label.textContent = 'Starting landing page…';
+                label.textContent = 'Preparing your landing page…';
                 loading.append(label);
             }
             const progress = document.createElement('div'); {
