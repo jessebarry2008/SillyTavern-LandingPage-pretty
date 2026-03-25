@@ -463,6 +463,9 @@ html > body.stlp--hideTopBar:has(.stlp--container) > #top-bar:hover + #top-setti
   align-items: flex-end;
   gap: 2em;
 }
+.stlp--container .stlp--wrapper .stlp--cards[data-category=search] {
+  --stlp--cardsTopSpacer: 8em;
+}
 .stlp--container .stlp--wrapper .stlp--cards > .stlp--cardWrap {
   --stlp--finalOpacity: 1;
   flex: 0 0 auto;

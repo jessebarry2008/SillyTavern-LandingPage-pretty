@@ -357,6 +357,10 @@ html > body.stlp--hideTopBar:has(.stlp--container) > {
 			align-items: flex-end;
 			gap: 2em;
 
+			&[data-category="search"] {
+				--stlp--cardsTopSpacer: 8em;
+			}
+
 			> .stlp--cardWrap {
                 --stlp--finalOpacity: 1;
 				flex: 0 0 auto;
