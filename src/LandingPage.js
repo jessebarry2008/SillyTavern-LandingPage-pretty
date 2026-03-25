@@ -10,6 +10,7 @@ import { waitForFrame } from './wait.js';
 
 export class LandingPage {
     /**@type {Card[]}*/ cards = [];
+    /**@type {Boolean}*/ isLoadingCards = false;
     /**@type {Object.<'favorites'|'recents'|'search', Card[]>}*/ cardsByCategory = { favorites:[], recents:[], search:[] };
     /**@type {'favorites'|'recents'|'search'}*/ activeCategory = 'favorites';
     /**@type {Map<Card, any>}*/ cardEntries = new Map();
@@ -614,6 +615,13 @@ export class LandingPage {
         this.searchResults = matched;
     }
 
+    setCardsLoadingState(overlay, isLoading) {
+        this.isLoadingCards = isLoading;
+        if (!overlay) return;
+        overlay.classList.toggle('stlp--isHidden', !isLoading);
+        overlay.setAttribute('aria-hidden', isLoading ? 'false' : 'true');
+    }
+
 
     async renderContent() {
         const container = this.dom;
@@ -644,8 +652,11 @@ export class LandingPage {
                             saveSettingsDebounced();
                             tabs.querySelectorAll('.stlp--categoryTab').forEach(it=>it.classList.remove('stlp--active'));
                             btn.classList.add('stlp--active');
+                            this.setCardsLoadingState(loadingOverlay, true);
                             searchToolbar.classList.toggle('stlp--active', key === 'search');
                             await this.renderCardsForCategory(root, key);
+                            await waitForFrame();
+                            this.setCardsLoadingState(loadingOverlay, false);
                         });
                         tabs.append(btn);
                     }
@@ -719,8 +730,37 @@ export class LandingPage {
                 wrap.append(searchToolbar);
             }
 
+            const loadingOverlay = document.createElement('div'); {
+                loadingOverlay.classList.add('stlp--loadingOverlay');
+                loadingOverlay.setAttribute('aria-live', 'polite');
+                loadingOverlay.setAttribute('aria-label', 'Loading cards');
+
+                const shuffle = document.createElement('div'); {
+                    shuffle.classList.add('stlp--loadingShuffle');
+                    for (let i = 0; i < 3; i++) {
+                        const card = document.createElement('div');
+                        card.classList.add('stlp--loadingShuffleCard');
+                        shuffle.append(card);
+                    }
+                    loadingOverlay.append(shuffle);
+                }
+
+                const label = document.createElement('div'); {
+                    label.classList.add('stlp--loadingLabel');
+                    label.textContent = 'Shuffling cards…';
+                    loadingOverlay.append(label);
+                }
+
+                wrap.append(loadingOverlay);
+            }
+
             const root = document.createElement('div'); {
                 root.classList.add('stlp--cards');
+                this.setCardsLoadingState(loadingOverlay, true);
+                await this.renderCardsForCategory(root, this.activeCategory);
+                await waitForFrame();
+                await waitForFrame();
+                this.setCardsLoadingState(loadingOverlay, false);
                 const firstRenderStart = performance.now();
                 await this.renderCardsForCategory(root, this.activeCategory);
                 log('LandingPage.renderContent first-card-render-ms', Math.round(performance.now() - firstRenderStart));
