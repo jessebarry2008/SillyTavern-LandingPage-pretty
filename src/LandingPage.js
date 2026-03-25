@@ -46,6 +46,11 @@ export class LandingPage {
     /**@type {Object.<string,string>}*/ videoCache = {};
 
     /**@type {import('./FizzPopCrackle/FPC.js').FPC}*/ fpc;
+    /**@type {HTMLElement}*/ startupLoadingEl;
+    /**@type {HTMLElement}*/ startupLoadingLabelEl;
+    /**@type {HTMLElement}*/ startupLoadingBarEl;
+    /**@type {number}*/ startupLoadingProgress = 0;
+    /**@type {number|null}*/ startupLoadingTimer = null;
 
 
 
@@ -97,6 +102,7 @@ export class LandingPage {
 
     async load() {
         log('LandingPage.load');
+        this.setStartupLoadingProgress(12, 'Gathering cards…');
         const compRecent = (a,b)=>{
             if (this.settings.showFavorites) {
                 if (a.char.fav && !b.char.fav) return -1;
@@ -129,9 +135,11 @@ export class LandingPage {
             };
             this.availableTags = this.getAvailableTags(this.cardsByCategory.search);
             this.updateSearchResults();
+            this.setStartupLoadingProgress(42, 'Preparing visuals…');
 
             const allCards = Array.from(new Set(Object.values(this.cardsByCategory).flat()));
             await Promise.all(allCards.map(card=>card.load()));
+            this.setStartupLoadingProgress(82, 'Finalizing layout…');
             this.cards = this.activeCategory === 'search'
                 ? this.searchResults.slice(0, this.settings.numCards)
                 : (this.cardsByCategory[this.activeCategory] ?? []);
@@ -473,6 +481,9 @@ export class LandingPage {
             }
             this.dom = container;
         }
+        if (!appReady) {
+            this.renderStartupLoading();
+        }
 
         window.addEventListener('keydown', this.handleInputBound);
 
@@ -488,6 +499,7 @@ export class LandingPage {
         this.dom?.remove();
         this.dom = null;
         this.isStartingVideo = false;
+        this.teardownStartupLoading();
         this.endInput();
     }
 
@@ -621,6 +633,7 @@ export class LandingPage {
 
 
     async renderContent() {
+        this.setStartupLoadingProgress(100, 'Ready');
         const container = this.dom;
         const wrap = document.createElement('div'); {
             wrap.classList.add('stlp--wrapper');
@@ -755,6 +768,78 @@ export class LandingPage {
                 inputDisplayContainer.append(inputDisplay);
             }
         }
+        this.teardownStartupLoading(true);
+    }
+
+    renderStartupLoading() {
+        if (!this.dom || this.startupLoadingEl) return;
+        const loading = document.createElement('div'); {
+            this.startupLoadingEl = loading;
+            loading.classList.add('stlp--startupLoading');
+            const stack = document.createElement('div'); {
+                stack.classList.add('stlp--startupDeck');
+                for (let i = 0; i < 5; i++) {
+                    const card = document.createElement('div');
+                    card.classList.add('stlp--startupDeckCard');
+                    card.style.setProperty('--stlp--deck-i', i.toString());
+                    stack.append(card);
+                }
+                loading.append(stack);
+            }
+            const label = document.createElement('div'); {
+                this.startupLoadingLabelEl = label;
+                label.classList.add('stlp--startupLoadingLabel');
+                label.textContent = 'Starting landing page…';
+                loading.append(label);
+            }
+            const progress = document.createElement('div'); {
+                progress.classList.add('stlp--startupLoadingProgress');
+                const bar = document.createElement('div'); {
+                    this.startupLoadingBarEl = bar;
+                    bar.classList.add('stlp--startupLoadingBar');
+                    progress.append(bar);
+                }
+                loading.append(progress);
+            }
+            this.dom.append(loading);
+        }
+        this.startupLoadingProgress = 5;
+        this.setStartupLoadingProgress(5, 'Starting landing page…');
+        if (this.startupLoadingTimer !== null) clearInterval(this.startupLoadingTimer);
+        this.startupLoadingTimer = setInterval(()=>{
+            if (this.startupLoadingProgress >= 92) return;
+            this.setStartupLoadingProgress(this.startupLoadingProgress + 1);
+        }, 230);
+    }
+    setStartupLoadingProgress(value, label = null) {
+        this.startupLoadingProgress = Math.max(0, Math.min(100, value));
+        if (this.startupLoadingBarEl) {
+            this.startupLoadingBarEl.style.width = `${this.startupLoadingProgress}%`;
+        }
+        if (this.startupLoadingLabelEl && label) {
+            this.startupLoadingLabelEl.textContent = label;
+        }
+    }
+    teardownStartupLoading(isReady = false) {
+        if (this.startupLoadingTimer !== null) {
+            clearInterval(this.startupLoadingTimer);
+            this.startupLoadingTimer = null;
+        }
+        if (!this.startupLoadingEl) return;
+        if (isReady) {
+            this.startupLoadingEl.classList.add('stlp--exit');
+            setTimeout(()=>{
+                this.startupLoadingEl?.remove();
+                this.startupLoadingEl = null;
+                this.startupLoadingLabelEl = null;
+                this.startupLoadingBarEl = null;
+            }, 220);
+            return;
+        }
+        this.startupLoadingEl.remove();
+        this.startupLoadingEl = null;
+        this.startupLoadingLabelEl = null;
+        this.startupLoadingBarEl = null;
     }
 
 
