@@ -53,20 +53,6 @@ html > body.stlp--hideTopBar:has(.stlp--container) > #top-bar:hover + #top-setti
     transform: scale(1);
   }
 }
-@keyframes stlp--shuffleCards {
-  0% {
-    opacity: 0.45;
-    transform: translate(0, 0.6rem) rotate(-7deg) scale(0.94);
-  }
-  45% {
-    opacity: 1;
-    transform: translate(0, -0.4rem) rotate(0deg) scale(1);
-  }
-  100% {
-    opacity: 0.4;
-    transform: translate(0, 0.5rem) rotate(8deg) scale(0.95);
-  }
-}
 .stlp--container {
   --stlp--cardHeight: 200px;
   --stlp--cardWidth: calc(var(--stlp--cardHeight) / 144 * 96);
@@ -386,55 +372,6 @@ html > body.stlp--hideTopBar:has(.stlp--container) > #top-bar:hover + #top-setti
 .stlp--container .stlp--wrapper .stlp--searchToolbar > .stlp--searchClear {
   border-radius: 0.65em;
 }
-.stlp--container .stlp--wrapper .stlp--loadingOverlay {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75em;
-  background: radial-gradient(circle at center, rgb(0 0 0 / 18%) 0%, rgb(0 0 0 / 50%) 70%, rgb(0 0 0 / 65%) 100%);
-  opacity: 1;
-  pointer-events: auto;
-  transition: opacity 220ms ease;
-}
-.stlp--container .stlp--wrapper .stlp--loadingOverlay.stlp--isHidden {
-  opacity: 0;
-  pointer-events: none;
-}
-.stlp--container .stlp--wrapper .stlp--loadingOverlay .stlp--loadingShuffle {
-  position: relative;
-  width: 5rem;
-  height: 4.5rem;
-}
-.stlp--container .stlp--wrapper .stlp--loadingOverlay .stlp--loadingShuffle > .stlp--loadingShuffleCard {
-  position: absolute;
-  inset: 0;
-  border-radius: 0.6rem;
-  background: linear-gradient(165deg, rgb(255 255 255 / 70%), rgb(255 255 255 / 25%));
-  border: 1px solid rgb(255 255 255 / 35%);
-  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 35%);
-  transform-origin: center;
-  animation: stlp--shuffleCards 1.15s ease-in-out infinite;
-}
-.stlp--container .stlp--wrapper .stlp--loadingOverlay .stlp--loadingShuffle > .stlp--loadingShuffleCard:nth-child(1) {
-  animation-delay: 0s;
-}
-.stlp--container .stlp--wrapper .stlp--loadingOverlay .stlp--loadingShuffle > .stlp--loadingShuffleCard:nth-child(2) {
-  animation-delay: 0.18s;
-}
-.stlp--container .stlp--wrapper .stlp--loadingOverlay .stlp--loadingShuffle > .stlp--loadingShuffleCard:nth-child(3) {
-  animation-delay: 0.36s;
-}
-.stlp--container .stlp--wrapper .stlp--loadingOverlay .stlp--loadingLabel {
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: rgb(255 255 255 / 92%);
-  text-shadow: 0 0.15em 0.4em rgb(0 0 0 / 40%);
-}
 .stlp--container .stlp--wrapper .stlp--cards {
   position: absolute;
   bottom: 0;
@@ -445,7 +382,6 @@ html > body.stlp--hideTopBar:has(.stlp--container) > #top-bar:hover + #top-setti
   justify-content: center;
   align-items: flex-end;
   gap: 2em;
-  z-index: 1;
 }
 .stlp--container .stlp--wrapper .stlp--cards > .stlp--cardWrap {
   --stlp--finalOpacity: 1;
@@ -801,12 +737,4 @@ html > body.no-blur .stlp--container .stlp--inputBlocker {
 .stlp--fpc--prefsGroup {
   display: flex;
   align-items: center;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .stlp--container .stlp--wrapper .stlp--loadingOverlay .stlp--loadingShuffle > .stlp--loadingShuffleCard {
-    animation: none;
-    opacity: 1;
-    transform: translateY(0) rotate(0deg);
-  }
 }
