@@ -679,7 +679,7 @@ export class LandingPage {
                     card.render(settings),
                     this.getStartupFastTrackPromise(),
                 ]);
-            if (el === 'slow-mode' || this.useSlowConnectionMode) {
+            if (el === 'slow-mode') {
                 root.innerHTML = '';
                 await this.renderCardsForCategory(root, category);
                 return;
