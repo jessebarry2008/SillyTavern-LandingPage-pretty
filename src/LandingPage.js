@@ -54,7 +54,6 @@ export class LandingPage {
     /**@type {number}*/ startupLoadingProgress = 0;
     /**@type {number|null}*/ startupLoadingTimer = null;
     /**@type {boolean}*/ useSlowConnectionMode = false;
-    /**@type {boolean}*/ startupFastTrackRequested = false;
 
 
 
@@ -851,20 +850,15 @@ export class LandingPage {
                 slowModeButton.textContent = 'Use Slow Connection Mode';
                 slowModeButton.addEventListener('click', ()=>{
                     this.useSlowConnectionMode = true;
-                    this.startupFastTrackRequested = true;
                     slowModeButton.disabled = true;
                     slowModeButton.textContent = 'Slow Connection Mode enabled';
                     this.setStartupLoadingDetail('Will skip card avatars and load a text-first grid for faster startup.');
-                    if (this.cardsByCategory.search.length > 0) {
-                        this.renderContent();
-                    }
                 });
                 loading.append(slowModeButton);
             }
             this.dom.append(loading);
         }
         this.useSlowConnectionMode = false;
-        this.startupFastTrackRequested = false;
         if (this.startupSlowModeButtonEl) {
             this.startupSlowModeButtonEl.disabled = false;
             this.startupSlowModeButtonEl.textContent = 'Use Slow Connection Mode';
